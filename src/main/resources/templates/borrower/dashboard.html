@@ -1,0 +1,64 @@
+{@com.loanportal.model.BorrowerProfile profile}
+{@java.util.List<com.loanportal.model.LoanApplication> applications}
+{@java.util.List<com.loanportal.model.Document> missingDocs}
+{#include layout/base activeNav="dashboard"}
+{#title}Dashboard - Loan Origination Portal{/title}
+{#body}
+  <div class="section-title">
+    <h1>Welcome back, {profile.businessName}</h1>
+    <a class="btn btn-primary" href="/applications/new">+ New Application</a>
+  </div>
+
+  <div class="grid grid-3">
+    <div class="stat-tile"><div class="stat-label">Active applications</div><div class="stat-value">{applications.size}</div></div>
+    <div class="stat-tile"><div class="stat-label">Documents needing attention</div><div class="stat-value">{missingDocs.size}</div></div>
+    <div class="stat-tile"><div class="stat-label">Business</div><div class="stat-value" style="font-size:1.05rem">{profile.businessType}</div></div>
+  </div>
+
+  {#if missingDocs}
+  <div class="card">
+    <h2>Documents needing attention</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Application</th><th>Document</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      {#for d in missingDocs}
+        <tr>
+          <td><a href="/applications/{d.application.id}">#{d.application.id}</a></td>
+          <td>{d.documentType.name}</td>
+          <td><span class="badge {d.status.badgeClass}">{d.status.label}</span></td>
+          <td><a class="btn btn-sm btn-outline" href="/applications/{d.application.id}#documents">Review</a></td>
+        </tr>
+      {/for}
+      </tbody>
+    </table></div>
+  </div>
+  {/if}
+
+  <div class="card">
+    <div class="card-header-row"><h2>Your applications</h2></div>
+    {#if applications.isEmpty}
+      <div class="empty-state">
+        <div class="icon">📄</div>
+        <p>You haven't started an application yet.</p>
+        <a class="btn btn-primary" href="/applications/new">Start your first application</a>
+      </div>
+    {#else}
+      <div class="table-wrap"><table>
+        <thead><tr><th>ID</th><th>Product</th><th>Amount</th><th>Status</th><th>Updated</th><th></th></tr></thead>
+        <tbody>
+        {#for a in applications}
+          <tr>
+            <td>#{a.id}</td>
+            <td>{a.lendingProduct.name}</td>
+            <td>{a.requestedAmount.money}</td>
+            <td><span class="badge {a.status.badgeClass}">{a.status.label}</span></td>
+            <td>{a.updatedAt.fmt}</td>
+            <td><a class="btn btn-sm btn-outline" href="/applications/{a.id}">View</a></td>
+          </tr>
+        {/for}
+        </tbody>
+      </table></div>
+    {/if}
+  </div>
+{/body}
+{/include}

@@ -1,0 +1,50 @@
+{@java.lang.String error}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create account - Loan Origination Portal</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+  <div class="login-shell">
+    <div class="login-card" style="max-width:560px;">
+      <h1>Create your borrower account</h1>
+      <p class="muted">Register your business to start a loan application.</p>
+      {#if error}<div class="alert alert-danger" role="alert">{error}</div>{/if}
+      <form method="post" action="/register" class="stack">
+        <fieldset>
+          <legend>Account</legend>
+          <div class="form-group">
+            <label for="fullName">Your full name</label>
+            <input id="fullName" name="fullName" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label for="email">Email</label><input type="email" id="email" name="email" required autocomplete="username"></div>
+            <div class="form-group"><label for="password">Password</label><input type="password" id="password" name="password" required minlength="10" autocomplete="new-password"></div>
+          </div>
+          <p class="hint">At least 10 characters.</p>
+        </fieldset>
+        <fieldset>
+          <legend>Business</legend>
+          <div class="form-group"><label for="businessName">Legal business name</label><input id="businessName" name="businessName" required></div>
+          <div class="form-row">
+            <div class="form-group"><label for="businessType">Business type</label><input id="businessType" name="businessType" placeholder="LLC, Sole Proprietorship..." required></div>
+            <div class="form-group"><label for="taxId">Tax ID (EIN)</label><input id="taxId" name="taxId" required></div>
+          </div>
+          <div class="form-group"><label for="addressLine1">Address</label><input id="addressLine1" name="addressLine1" required></div>
+          <div class="form-row">
+            <div class="form-group"><label for="city">City</label><input id="city" name="city" required></div>
+            <div class="form-group"><label for="state">State</label><input id="state" name="state" maxlength="2" required></div>
+            <div class="form-group"><label for="postalCode">Postal code</label><input id="postalCode" name="postalCode" required></div>
+          </div>
+          <div class="form-group"><label for="contactPhone">Contact phone</label><input id="contactPhone" name="contactPhone" required></div>
+        </fieldset>
+        <button type="submit" class="btn btn-primary btn-block">Create account</button>
+      </form>
+      <p style="margin-top:1rem; font-size:.85rem;">Already registered? <a href="/login">Sign in</a></p>
+    </div>
+  </div>
+</body>
+</html>

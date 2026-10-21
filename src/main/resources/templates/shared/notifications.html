@@ -1,0 +1,27 @@
+{@java.util.List<com.loanportal.model.Notification> notifications}
+{#include layout/base activeNav="notifications"}
+{#title}Notifications - Loan Origination Portal{/title}
+{#body}
+  <div class="section-title">
+    <h1>Notifications</h1>
+    <form method="post" action="/notifications/mark-all-read">
+      <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+      <button class="btn btn-outline btn-sm" type="submit">Mark all read</button>
+    </form>
+  </div>
+  <div class="card">
+    {#if notifications.isEmpty}
+      <div class="empty-state"><div class="icon">🔔</div><p>You're all caught up.</p></div>
+    {#else}
+      <div class="stack">
+        {#for n in notifications}
+          <div class="card" style="margin-bottom:.5rem; padding:.75rem 1rem; {#if !n.read}border-left:4px solid var(--color-accent);{/if}">
+            <div>{n.message}</div>
+            <div class="muted" style="font-size:.78rem;">{n.createdAt.fmt} {#if n.link}&middot; <a href="{n.link}">Open</a>{/if}</div>
+          </div>
+        {/for}
+      </div>
+    {/if}
+  </div>
+{/body}
+{/include}

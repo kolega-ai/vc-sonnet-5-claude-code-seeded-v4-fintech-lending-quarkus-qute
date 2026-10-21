@@ -1,0 +1,220 @@
+{@java.lang.String result}
+{@java.lang.String error}
+{@java.util.Map<java.lang.String,java.lang.String> environment}
+{#include layout/base activeNav="import"}
+{#title}Import / export - Admin{/title}
+{#body}
+  <h1>Import &amp; export</h1>
+  {#if result}<div class="alert alert-success">{result}</div>{/if}
+  {#if error}<div class="alert alert-danger">{error}</div>{/if}
+
+  <div class="card">
+    <h2>Import borrower leads (CSV or partner XML feed)</h2>
+    <p class="hint">CSV header row must include <code>business_name</code>, <code>contact_email</code>, and optionally <code>contact_phone</code>. An XML feed uses one <code>&lt;lead&gt;</code> element per row with the same field names.</p>
+    <form method="post" action="/admin/import" enctype="multipart/form-data">
+      <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+      <div class="form-group"><label for="batchLabel">Batch label</label><input id="batchLabel" name="batchLabel" placeholder="q3-broker-list"></div>
+      <div class="form-group"><input type="file" name="file" accept=".csv,.xml" required></div>
+      <button class="btn btn-primary" type="submit">Import leads</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Export data (CSV)</h2>
+    <div class="pill-list">
+      <a class="btn btn-outline" href="/admin/export/applications">Applications</a>
+      <a class="btn btn-outline" href="/admin/export/decisions">Decisions</a>
+      <a class="btn btn-outline" href="/admin/export/document-status">Document status</a>
+    </div>
+    <p class="hint" style="margin-top:.75rem;">Decision and document exports include staff-facing reasons and metadata only &mdash; never raw uploaded file bytes and never internal underwriting notes.</p>
+  </div>
+
+  <div class="card">
+    <h2>Resolved environment</h2>
+    <p class="hint">What this instance is actually connected to &mdash; check this before replaying a batch.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Setting</th><th>Value</th></tr></thead>
+      <tbody>
+      {#for e in environment}
+        <tr><td class="mono">{e.key}</td><td class="mono">{e.value}</td></tr>
+      {/for}
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h2>Partner notice</h2>
+    <p class="hint">Re-send a decision event to a partner endpoint (credit bureau or core banking) and log the attempt.</p>
+    <div class="form-row">
+      <div class="form-group"><label for="endpointUrl">Partner endpoint</label><input id="endpointUrl" name="endpointUrl" placeholder="https://partner.example/events"></div>
+      <div class="form-group"><label for="eventType">Event</label>
+        <select id="eventType"><option value="APPLICATION_DECIDED">Application decided</option><option value="DOCUMENT_ACCEPTED">Document accepted</option></select>
+      </div>
+      <div class="form-group"><label for="noticeRef">Application id</label><input id="noticeRef" name="noticeRef"></div>
+    </div>
+    <button class="btn btn-primary btn-sm" type="button" id="sendNotice">Send notice</button>
+    <span class="muted" id="noticeResult"></span>
+  </div>
+  {|
+  <script>
+    document.getElementById('sendNotice').addEventListener('click', function () {
+      fetch('/admin/partner-notices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          csrf: document.querySelector('input[name=csrf]').value,
+          endpointUrl: document.getElementById('endpointUrl').value,
+          eventType: document.getElementById('eventType').value,
+          payload: { applicationId: Number(document.getElementById('noticeRef').value) }
+        })
+      }).then(function (r) { return r.json(); }).then(function (j) {
+        document.getElementById('noticeResult').textContent = j.status || j.err;
+      });
+    });
+  </script>
+  |}
+
+  <div class="card">
+    <h2>Operations tools</h2>
+    <div class="pill-list" style="margin-bottom:.75rem;">
+      <a class="btn btn-sm btn-outline" href="/admin/export/applications/save?fileName=applications.csv">Save application export to reports</a>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label for="leadQuery">Search leads by business name</label><input id="leadQuery" name="leadQuery"></div>
+      <div class="form-group"><label for="partnerCode">Partner code</label><input id="partnerCode" name="partnerCode"></div>
+      <div class="form-group"><label for="partnerPhrase">Partner phrase</label><input id="partnerPhrase" name="partnerPhrase"></div>
+    </div>
+    <button class="btn btn-sm btn-primary" type="button" id="runLeadQuery">Search leads</button>
+    <button class="btn btn-sm btn-primary" type="button" id="runPartnerEnroll">Register partner phrase</button>
+    <button class="btn btn-sm btn-outline" type="button" id="runRoles">Assign underwriter role</button>
+    <button class="btn btn-sm btn-outline" type="button" id="runSync">Sync to core banking</button>
+    <button class="btn btn-sm btn-outline" type="button" id="runReconcile">Reconcile settlement payload</button>
+    <span class="muted" id="toolsResult"></span>
+    <form method="post" action="/admin/statements/import" enctype="multipart/form-data" style="margin-top:.75rem;">
+      <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+      <div class="form-group"><label>Legacy statement archive</label><input type="file" name="file"></div>
+      <button class="btn btn-sm btn-outline" type="submit">Import archive</button>
+    </form>
+    <form method="post" action="/admin/import/files" enctype="multipart/form-data" style="margin-top:.75rem;">
+      <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+      <div class="form-group"><label>Inspect kept batch manifest</label><input type="file" name="file"></div>
+      <button class="btn btn-sm btn-outline" type="submit">List files</button>
+    </form>
+  </div>
+  <div class="card">
+    <h2>Partner integrations &amp; operations desk</h2>
+    <div class="form-row">
+      <div class="form-group"><label for="feedJson">Partner JSON feed</label><textarea id="feedJson" rows="3" placeholder="JSON array of lead objects"></textarea></div>
+    </div>
+    <button class="btn btn-sm btn-primary" type="button" id="runJsonFeed">Import JSON feed</button>
+    <div class="form-row" style="margin-top:.5rem;">
+      <div class="form-group"><label for="feedXml">Partner XML feed</label><textarea id="feedXml" rows="3" placeholder="&lt;leads&gt;&lt;lead&gt;...&lt;/lead&gt;&lt;/leads&gt;"></textarea></div>
+      <div class="form-group"><label for="feedBiz">Business name</label><input id="feedBiz"></div>
+    </div>
+    <button class="btn btn-sm btn-outline" type="button" id="runFeedSearch">Search XML feed</button>
+    <div class="form-row" style="margin-top:.5rem;">
+      <div class="form-group"><label for="dirAccount">Directory account</label><input id="dirAccount"></div>
+      <div class="form-group"><label for="rateProduct">Product id</label><input id="rateProduct" value="1"></div>
+      <div class="form-group"><label for="rateExpr">Rate expression</label><input id="rateExpr" placeholder="amount * baseRatePct / 100"></div>
+    </div>
+    <button class="btn btn-sm btn-outline" type="button" id="runDirResolve">Resolve directory account</button>
+    <button class="btn btn-sm btn-outline" type="button" id="runRatePreview">Preview rate</button>
+    <div class="form-row" style="margin-top:.5rem;">
+      <div class="form-group"><label for="officerCode">Officer code</label><input id="officerCode"></div>
+      <div class="form-group"><label for="officerPhrase">Counter phrase</label><input id="officerPhrase"></div>
+      <div class="form-group"><label for="bureauApp">Application id</label><input id="bureauApp" value="1"></div>
+      <div class="form-group"><label for="bureauKey">Bureau key</label><input id="bureauKey"></div>
+    </div>
+    <button class="btn btn-sm btn-outline" type="button" id="runOfficerEnroll">Enroll officer</button>
+    <button class="btn btn-sm btn-outline" type="button" id="runOfficerVerify">Verify officer</button>
+    <button class="btn btn-sm btn-outline" type="button" id="runBureau">Run bureau pre-screen</button>
+    <span class="muted" id="integrationResult"></span>
+  </div>
+
+  <div class="card">
+    <h2>Borrower notice wording</h2>
+    <p class="hint">Editable wording rendered when the portal emails a borrower about an application event.</p>
+    <form method="post" action="/admin/notices">
+      <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+      <div class="form-row">
+        <div class="form-group"><label for="noticeCode">Code</label><input id="noticeCode" name="code" value="APPROVED_NOTICE"></div>
+        <div class="form-group"><label for="noticeSubject">Subject</label><input id="noticeSubject" name="subject" value="Your application is approved"></div>
+      </div>
+      <div class="form-group"><label for="noticeBody">Body</label><textarea id="noticeBody" name="body" rows="3" placeholder="Wording supports the notice fields">Hello, your application is now approved.</textarea></div>
+      <button class="btn btn-sm btn-outline" type="submit">Save wording</button>
+    </form>
+    <form method="post" action="/admin/notices/send" style="margin-top:.75rem;">
+      <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+      <div class="form-row">
+        <div class="form-group"><label for="sendCode">Code</label><input id="sendCode" name="code" value="APPROVED_NOTICE"></div>
+        <div class="form-group"><label for="sendApp">Application id</label><input id="sendApp" name="applicationId" value="1"></div>
+      </div>
+      <button class="btn btn-sm btn-primary" type="submit">Queue notice</button>
+    </form>
+  </div>
+  {|
+  <script>
+    function toolsCsrf() { return document.querySelector('input[name=csrf]').value; }
+    function showTools(j) { document.getElementById('toolsResult').textContent = JSON.stringify(j); }
+    document.getElementById('runLeadQuery').addEventListener('click', function () {
+      fetch('/admin/leads/search', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'businessName=' + encodeURIComponent(document.getElementById('leadQuery').value) })
+        .then(function (r) { return r.json(); }).then(showTools);
+    });
+    document.getElementById('runPartnerEnroll').addEventListener('click', function () {
+      fetch('/admin/integration-credentials', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csrf: toolsCsrf(), partnerCode: document.getElementById('partnerCode').value, phrase: document.getElementById('partnerPhrase').value }) })
+        .then(function (r) { return r.json(); }).then(showTools);
+    });
+    document.getElementById('runRoles').addEventListener('click', function () {
+      fetch('/admin/users/roles', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csrf: toolsCsrf(), role: 'UNDERWRITER', userIds: [] }) })
+        .then(function (r) { return r.json(); }).then(showTools);
+    });
+    document.getElementById('runSync').addEventListener('click', function () {
+      fetch('/admin/core-banking/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csrf: toolsCsrf(), applicationId: 1, settlementKey: 'demo' }) })
+        .then(function (r) { return r.json(); }).then(showTools);
+    });
+    document.getElementById('runReconcile').addEventListener('click', function () {
+      var blob = window.prompt('Base64 reconciliation payload') || '';
+      fetch('/admin/settlement/reconcile?blob=' + encodeURIComponent(blob))
+        .then(function (r) { return r.json(); }).then(showTools);
+    });
+    function postJson(url, obj) {
+      return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.assign({ csrf: toolsCsrf() }, obj)) });
+    }
+    function showIntegration(r) { document.getElementById('integrationResult').textContent = JSON.stringify(r); }
+    document.getElementById('runJsonFeed').addEventListener('click', function () {
+      postJson('/admin/import/feed-json', { feed: document.getElementById('feedJson').value })
+        .then(function (r) { return r.json(); }).then(showIntegration);
+    });
+    document.getElementById('runFeedSearch').addEventListener('click', function () {
+      postJson('/admin/feeds/search', { feed: document.getElementById('feedXml').value, businessName: document.getElementById('feedBiz').value })
+        .then(function (r) { return r.json(); }).then(showIntegration);
+    });
+    document.getElementById('runDirResolve').addEventListener('click', function () {
+      postJson('/admin/directory/resolve', { accountName: document.getElementById('dirAccount').value })
+        .then(function (r) { return r.json(); }).then(showIntegration);
+    });
+    document.getElementById('runRatePreview').addEventListener('click', function () {
+      postJson('/admin/products/rate-preview', { productId: Number(document.getElementById('rateProduct').value), expression: document.getElementById('rateExpr').value })
+        .then(function (r) { return r.json(); }).then(showIntegration);
+    });
+    document.getElementById('runOfficerEnroll').addEventListener('click', function () {
+      postJson('/admin/officers', { officerCode: document.getElementById('officerCode').value, phrase: document.getElementById('officerPhrase').value })
+        .then(function (r) { return r.json(); }).then(showIntegration);
+    });
+    document.getElementById('runOfficerVerify').addEventListener('click', function () {
+      postJson('/admin/officers/verify', { officerCode: document.getElementById('officerCode').value, phrase: document.getElementById('officerPhrase').value })
+        .then(function (r) { return r.json(); }).then(showIntegration);
+    });
+    document.getElementById('runBureau').addEventListener('click', function () {
+      postJson('/admin/bureau/prescreen', { appId: Number(document.getElementById('bureauApp').value), vendorKey: document.getElementById('bureauKey').value })
+        .then(function (r) { return r.json(); }).then(showIntegration);
+    });
+  </script>
+  |}
+{/body}
+{/include}

@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: loanportal-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-loanportal}
+      POSTGRES_USER: ${DB_USER:-loanportal}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-loanportal_dev_pw}
+    ports:
+      - "${DB_PORT:-55432}:5432"
+    volumes:
+      - loanportal-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-loanportal} -d ${DB_NAME:-loanportal}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: loanportal-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-loanportal}
+      DB_USER: ${DB_USER:-loanportal}
+      DB_PASSWORD: ${DB_PASSWORD:-loanportal_dev_pw}
+      SESSION_SECRET: ${SESSION_SECRET:-dev-only-session-secret-change-me-please-32bytes}
+      APP_PORT: 8080
+      UPLOAD_BASE_DIR: /data/uploads
+    ports:
+      - "${APP_PORT_HOST:-58080}:8080"
+    volumes:
+      - loanportal-uploads:/data/uploads
+
+volumes:
+  loanportal-pgdata:
+  loanportal-uploads:

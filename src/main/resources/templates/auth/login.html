@@ -1,0 +1,42 @@
+{@java.lang.String error}
+{@java.lang.String redirect}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in - Loan Origination Portal</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+  <div class="login-shell">
+    <div class="login-card">
+      <h1>🏦 Loan Origination Portal</h1>
+      <p class="muted">Sign in to manage business loan applications.</p>
+      {#if error}<div class="alert alert-danger" role="alert">{error}</div>{/if}
+      <form method="post" action="/login" class="stack">
+        <input type="hidden" name="redirect" value="{redirect ?: ''}">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required autocomplete="username" autofocus>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+      </form>
+      <p style="margin-top:1rem; font-size:.85rem;">
+        <a href="/forgot-password">Forgot password?</a> &middot; New borrower? <a href="/register">Create an account</a>
+      </p>
+      <div class="demo-creds">
+        <strong>Demo credentials</strong> (seeded data, password shown for each):<br>
+        Admin: <code>admin@loanportal.test</code> / <code>Admin!12345</code><br>
+        Underwriter: <code>uw.morgan@loanportal.test</code> / <code>Underwrite!123</code><br>
+        Support: <code>support.dana@loanportal.test</code> / <code>Support!1234</code><br>
+        Borrower: <code>owner@brightleafbakery.test</code> / <code>Borrower!123</code>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

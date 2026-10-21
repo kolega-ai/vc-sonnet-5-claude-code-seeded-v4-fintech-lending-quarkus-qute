@@ -1,0 +1,33 @@
+{@java.util.List<com.loanportal.model.LoanApplication> applications}
+{#include layout/base activeNav="applications"}
+{#title}My applications - Loan Origination Portal{/title}
+{#body}
+  <div class="breadcrumbs"><a href="/dashboard">Dashboard</a><span class="sep">/</span>Applications</div>
+  <div class="section-title">
+    <h1>My applications</h1>
+    <a class="btn btn-primary" href="/applications/new">+ New Application</a>
+  </div>
+  <div class="card">
+    {#if applications.isEmpty}
+      <div class="empty-state"><div class="icon">📄</div><p>No applications yet.</p></div>
+    {#else}
+      <div class="table-wrap"><table>
+        <thead><tr><th>ID</th><th>Product</th><th>Amount</th><th>Term</th><th>Status</th><th>Submitted</th><th></th></tr></thead>
+        <tbody>
+        {#for a in applications}
+          <tr>
+            <td>#{a.id}</td>
+            <td>{a.lendingProduct.name}</td>
+            <td>{a.requestedAmount.money}</td>
+            <td>{a.requestedTermMonths} mo</td>
+            <td><span class="badge {a.status.badgeClass}">{a.status.label}</span></td>
+            <td>{#if a.submittedAt}{a.submittedAt.fmt}{#else}<span class="muted">not submitted</span>{/if}</td>
+            <td><a class="btn btn-sm btn-outline" href="/applications/{a.id}">View</a></td>
+          </tr>
+        {/for}
+        </tbody>
+      </table></div>
+    {/if}
+  </div>
+{/body}
+{/include}

@@ -1,0 +1,25 @@
+{@java.util.List<com.loanportal.model.AuditEvent> events}
+{#include layout/base activeNav="audit"}
+{#title}Audit log - Admin{/title}
+{#body}
+  <h1>Audit log</h1>
+  <p class="muted">Append-only. No route exists to edit or delete these records.</p>
+  <div class="card">
+    <div class="table-wrap"><table>
+      <thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Entity</th><th>Before &rarr; After</th><th>Authorization basis</th></tr></thead>
+      <tbody>
+      {#for e in events}
+        <tr>
+          <td>{e.createdAt.fmt}</td>
+          <td>{#if e.actor}{e.actor.email}{#else}<span class="muted">system</span>{/if}</td>
+          <td>{e.action}</td>
+          <td>{e.entityType} {#if e.entityId}#{e.entityId}{/if}</td>
+          <td>{e.beforeState ?: ''} {#if e.afterState}&rarr; {e.afterState}{/if}</td>
+          <td class="muted">{e.authBasis}</td>
+        </tr>
+      {/for}
+      </tbody>
+    </table></div>
+  </div>
+{/body}
+{/include}

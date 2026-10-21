@@ -1,0 +1,74 @@
+{@java.util.List<com.loanportal.model.LoanApplication> applications}
+{@java.lang.String sortBy}
+{@java.util.List<com.loanportal.model.User> underwriters}
+{#include layout/base activeNav="queue"}
+{#title}Underwriting queue - Loan Origination Portal{/title}
+{#body}
+  <h1>Underwriting queue</h1>
+  <p class="muted">Applications submitted for review, sorted by {sortBy}.</p>
+  <div class="pill-list" style="margin-bottom:1rem;">
+    <a class="btn btn-sm btn-outline" href="/underwriter/queue?sortBy=submitted">Sort: Submitted</a>
+    <a class="btn btn-sm btn-outline" href="/underwriter/queue?sortBy=amount">Sort: Amount</a>
+    <a class="btn btn-sm btn-outline" href="/underwriter/queue?sortBy=risk">Sort: Risk</a>
+    <a class="btn btn-sm btn-outline" href="/underwriter/queue?sortBy=created">Sort: Created</a>
+  </div>
+  <div class="card" style="margin-bottom:1rem;">
+    <form method="post" action="/underwriter/queue/notice">
+      <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+      <div class="form-group"><label for="notice">Queue notice</label><input id="notice" name="notice"></div>
+      <button class="btn btn-sm btn-primary" type="submit">Save notice</button>
+    </form>
+    <iframe src="/underwriter/queue/notice" title="Queue notice" style="width:100%;border:0;height:2.5rem;"></iframe>
+  </div>
+  <div class="card" style="margin-bottom:1rem;">
+    <div class="pill-list">
+      <label for="bulkOwner">Assign selected to</label>
+      <select id="bulkOwner">
+        {#for u in underwriters}<option value="{u.id}">{u.fullName}</option>{/for}
+      </select>
+      <button class="btn btn-sm btn-primary" type="button" id="bulkAssign">Assign</button>
+      <span class="muted" id="bulkResult"></span>
+    </div>
+  </div>
+  <div class="card">
+    {#if applications.isEmpty}
+      <div class="empty-state"><div class="icon">✅</div><p>Nothing in the queue right now.</p></div>
+    {#else}
+      <div class="table-wrap"><table>
+        <thead><tr><th></th><th>ID</th><th>Business</th><th>Amount</th><th>Risk</th><th>Status</th><th>Missing docs</th><th>Assigned</th><th>SLA age</th><th></th></tr></thead>
+        <tbody>
+        {#for a in applications}
+          <tr>
+            <td><input type="checkbox" class="queue-pick" value="{a.id}"></td>
+            <td>#{a.id}</td>
+            <td>{a.borrowerProfile.businessName}</td>
+            <td>{a.requestedAmount.money}</td>
+            <td><span class="badge badge-neutral">{a.riskTier}</span></td>
+            <td><span class="badge {a.status.badgeClass}">{a.status.label}</span></td>
+            <td>{a.missingDocCount}</td>
+            <td>{#if a.assignedUnderwriter}{a.assignedUnderwriter.fullName}{#else}<span class="muted">unassigned</span>{/if}</td>
+            <td>{a.slaSince.age}</td>
+            <td><a class="btn btn-sm btn-outline" href="/underwriter/applications/{a.id}">Review</a></td>
+          </tr>
+        {/for}
+        </tbody>
+      </table></div>
+    {/if}
+  </div>
+  {|
+  <script>
+    document.getElementById('bulkAssign').addEventListener('click', function () {
+      var ids = Array.prototype.slice.call(document.querySelectorAll('.queue-pick:checked')).map(function (c) { return Number(c.value); });
+      fetch('/underwriter/queue/assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ underwriterId: Number(document.getElementById('bulkOwner').value), applicationIds: ids })
+      }).then(function (r) { return r.json(); }).then(function (j) {
+        document.getElementById('bulkResult').textContent = j.updated + ' application(s) reassigned.';
+        window.location.reload();
+      });
+    });
+  </script>
+  |}
+{/body}
+{/include}

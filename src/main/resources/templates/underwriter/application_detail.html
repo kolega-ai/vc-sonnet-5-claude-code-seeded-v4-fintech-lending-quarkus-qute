@@ -1,0 +1,233 @@
+{@com.loanportal.model.LoanApplication app}
+{@java.util.List<com.loanportal.model.Document> documents}
+{@java.util.List<com.loanportal.model.Message> messages}
+{@java.util.List<com.loanportal.model.UnderwritingNote> notes}
+{@java.util.List<com.loanportal.model.Decision> decisions}
+{@java.util.List<com.loanportal.model.AuditEvent> auditTrail}
+{@java.util.List<com.loanportal.model.User> underwriters}
+{@boolean canDecide}
+{@java.lang.String error}
+{#include layout/base activeNav="queue"}
+{#title}Application #{app.id} review - Loan Origination Portal{/title}
+{#body}
+  <div class="breadcrumbs"><a href="/underwriter/queue">Queue</a><span class="sep">/</span>#{app.id}</div>
+  <div class="section-title">
+    <h1>Application #{app.id} <span class="badge {app.status.badgeClass}">{app.status.label}</span></h1>
+    <div class="pill-list">
+      {#if app.status.name() == 'SUBMITTED'}
+        <form method="post" action="/underwriter/applications/{app.id}/move-to-review">
+          <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+          <button class="btn btn-outline btn-sm" type="submit">Start review</button>
+        </form>
+      {/if}
+      <form method="post" action="/underwriter/applications/{app.id}/return-to-queue">
+        <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+        <button class="btn btn-outline btn-sm" type="submit">Return to queue</button>
+      </form>
+      <form method="post" action="/underwriter/applications/{app.id}/request-documents">
+        <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+        <button class="btn btn-outline btn-sm" type="submit">Request documents</button>
+      </form>
+    </div>
+  </div>
+  {#if error}<div class="alert alert-danger">{error}</div>{/if}
+
+  <div class="tabs">
+    <a href="#overview" class="active">Overview</a>
+    <a href="#documents">Documents</a>
+    <a href="#notes">Internal notes</a>
+    <a href="#decision">Decision</a>
+    <a href="#audit">Audit trail</a>
+  </div>
+
+  <div class="grid grid-2" id="overview">
+    <div class="card">
+      <h2>Loan request</h2>
+      <p><strong>Product:</strong> {app.lendingProduct.name}</p>
+      <p><strong>Requested amount:</strong> {app.requestedAmount.money}</p>
+      <p><strong>Term:</strong> {app.requestedTermMonths} months</p>
+      <p><strong>Purpose:</strong> {app.purpose}</p>
+      <p><strong>Risk tier:</strong> <span class="badge badge-neutral">{app.riskTier}</span></p>
+      <p><strong>SLA age:</strong> {app.slaSince.age}</p>
+      <form method="post" action="/underwriter/applications/{app.id}/assign" style="margin-top:1rem;">
+        <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+        <label for="underwriterId">Assign underwriter</label>
+        <div style="display:flex; gap:.5rem;">
+          <select id="underwriterId" name="underwriterId">
+            {#for u in underwriters}
+              {#if app.assignedUnderwriter && app.assignedUnderwriter.id == u.id}
+                <option value="{u.id}" selected>{u.fullName}</option>
+              {#else}
+                <option value="{u.id}">{u.fullName}</option>
+              {/if}
+            {/for}
+          </select>
+          <button class="btn btn-outline btn-sm" type="submit">Assign</button>
+        </div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Borrower</h2>
+      <p><strong>Business:</strong> {app.borrowerProfile.businessName}</p>
+      <p><strong>Type:</strong> {app.borrowerProfile.businessType}</p>
+      <p><strong>Address:</strong> {app.borrowerProfile.addressLine1}, {app.borrowerProfile.city}, {app.borrowerProfile.state} {app.borrowerProfile.postalCode}</p>
+      <p><strong>Phone:</strong> {app.borrowerProfile.contactPhone}</p>
+      <p><strong>Tax ID:</strong> <span class="mono">{app.borrowerProfile.taxId.maskTaxId}</span></p>
+      <p><strong>Owner account:</strong> {app.borrowerProfile.user.email}</p>
+    </div>
+  </div>
+
+  <div class="card" id="documents">
+    <h2>Document checklist</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Document</th><th>Status</th><th>File</th><th></th></tr></thead>
+      <tbody>
+      {#for d in documents}
+        <tr>
+          <td>{d.documentType.name}{#if d.documentType.required} <span class="muted">(required)</span>{/if}</td>
+          <td><span class="badge {d.status.badgeClass}">{d.status.label}</span> {#if d.rejectionReason}<div class="muted" style="font-size:.78rem;">{d.rejectionReason}</div>{/if}</td>
+          <td>{#if d.storedPath}<a href="/documents/{d.id}/download">{d.originalFilename}</a>{#else}<span class="muted">not uploaded</span>{/if}</td>
+          <td>
+            {#if d.status.name() == 'UPLOADED'}
+              <div class="pill-list">
+                <form method="post" action="/underwriter/documents/{d.id}/accept">
+                  <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+                  <button class="btn btn-sm btn-accent" type="submit">Accept</button>
+                </form>
+                <details>
+                  <summary class="btn btn-sm btn-outline" style="display:inline-flex;">Reject</summary>
+                  <form method="post" action="/underwriter/documents/{d.id}/reject" style="margin-top:.5rem;">
+                    <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+                    <input type="text" name="reason" placeholder="Reason (shown to borrower)" required style="width:220px;">
+                    <button class="btn btn-sm btn-danger" type="submit">Confirm reject</button>
+                  </form>
+                </details>
+                <details>
+                  <summary class="btn btn-sm btn-outline" style="display:inline-flex;">Request resubmission</summary>
+                  <form method="post" action="/underwriter/documents/{d.id}/resubmit" style="margin-top:.5rem;">
+                    <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+                    <input type="text" name="reason" placeholder="Reason (shown to borrower)" required style="width:220px;">
+                    <button class="btn btn-sm btn-outline" type="submit">Confirm</button>
+                  </form>
+                </details>
+              </div>
+            {/if}
+          </td>
+        </tr>
+      {/for}
+      </tbody>
+    </table></div>
+    <form method="post" action="/underwriter/documents/attributes" style="margin-top:.75rem;">
+      <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+      <div class="form-group"><label for="reference">Inspect stored file reference</label><input id="reference" name="reference" placeholder="app-{app.id}/..."></div>
+      <button class="btn btn-outline btn-sm" type="submit">Inspect attributes</button>
+    </form>
+  </div>
+
+  <div class="card" id="notes">
+    <h2>Internal underwriting notes <span class="badge badge-neutral">Staff only</span></h2>
+    <p class="hint">Never visible to the borrower and excluded from every borrower-facing view and export.</p>
+    <div class="stack">
+      {#for n in notes}
+        <div class="card" style="margin-bottom:.5rem; padding:.75rem 1rem; background:var(--color-neutral-bg);">
+          <div class="muted" style="font-size:.78rem;">{n.author.fullName} &middot; {n.createdAt.fmt}</div>
+          <div>{n.note}</div>
+        </div>
+      {/for}
+    </div>
+    <form method="post" action="/underwriter/applications/{app.id}/notes" style="margin-top:1rem;">
+      <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+      <div class="form-group"><label for="note">Add internal note</label><textarea id="note" name="note" required></textarea></div>
+      <button class="btn btn-primary btn-sm" type="submit">Add note</button>
+    </form>
+    <form method="post" action="/underwriter/applications/{app.id}/copilot-review" style="margin-top:.75rem;">
+      <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+      <button class="btn btn-outline btn-sm" type="submit">Draft assessment with copilot</button>
+    </form>
+    <hr class="divider">
+    <h3>Borrower conversation</h3>
+    <div class="stack">
+      {#for m in messages}
+        <div class="card" style="margin-bottom:.5rem; padding:.65rem .9rem;">
+          <div class="muted" style="font-size:.78rem;">{m.sender.fullName} &middot; {m.createdAt.fmt}</div>
+          <div>{m.body}</div>
+        </div>
+      {/for}
+    </div>
+    <form method="post" action="/underwriter/applications/{app.id}/messages" style="margin-top:.75rem;">
+      <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+      <div class="form-group"><label for="body">Message borrower</label><textarea id="body" name="body" required></textarea></div>
+      <button class="btn btn-outline btn-sm" type="submit">Send</button>
+    </form>
+  </div>
+
+  <div class="card" id="decision">
+    <h2>Decision panel</h2>
+    {#if canDecide}
+      <form method="post" action="/underwriter/applications/{app.id}/decide">
+        <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="decisionType">Decision</label>
+            <select id="decisionType" name="decisionType" required>
+              <option value="APPROVE">Approve</option>
+              <option value="REJECT">Reject</option>
+              <option value="COUNTEROFFER">Counteroffer</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="riskTier">Risk tier</label>
+            <select id="riskTier" name="riskTier" required>
+              <option value="LOW">Low</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="HIGH">High</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group"><label for="reasons">Reasons</label><textarea id="reasons" name="reasons" required></textarea></div>
+        <fieldset>
+          <legend>Counteroffer terms (if applicable)</legend>
+          <div class="form-row">
+            <div class="form-group"><label for="counterofferAmount">Amount</label><input type="number" step="0.01" id="counterofferAmount" name="counterofferAmount"></div>
+            <div class="form-group"><label for="counterofferRatePct">Rate %</label><input type="number" step="0.01" id="counterofferRatePct" name="counterofferRatePct"></div>
+            <div class="form-group"><label for="counterofferTermMonths">Term (months)</label><input type="number" id="counterofferTermMonths" name="counterofferTermMonths"></div>
+          </div>
+        </fieldset>
+        <p class="hint">A final approval is blocked while any required document is missing, rejected, or expired.</p>
+        <button class="btn btn-primary" type="submit">Record decision</button>
+      </form>
+    {#else}
+      <div class="alert alert-info">Support specialists cannot record decisions. Only underwriters and admins may approve, reject, or counteroffer.</div>
+    {/if}
+    <hr class="divider">
+    <h3>Decision history</h3>
+    {#if decisions.isEmpty}
+      <p class="muted">No decisions recorded yet.</p>
+    {/if}
+    {#for d in decisions}
+      <div class="card" style="padding:.75rem 1rem;">
+        <strong>{d.decisionType}</strong> by {d.decidedBy.fullName} &middot; {d.decidedAt.fmt}<br>
+        <span class="muted">{d.reasons}</span>
+      </div>
+    {/for}
+  </div>
+
+  <div class="card" id="audit">
+    <h2>Audit trail</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Detail</th><th>Authorization basis</th></tr></thead>
+      <tbody>
+      {#for e in auditTrail}
+        <tr>
+          <td>{e.createdAt.fmt}</td>
+          <td>{#if e.actor}{e.actor.email}{#else}<span class="muted">system</span>{/if}</td>
+          <td>{e.action}</td>
+          <td>{e.beforeState ?: ''} {#if e.afterState}&rarr; {e.afterState}{/if}</td>
+          <td class="muted">{e.authBasis}</td>
+        </tr>
+      {/for}
+      </tbody>
+    </table></div>
+  </div>
+{/body}
+{/include}

@@ -1,0 +1,41 @@
+{@java.util.List<com.loanportal.model.LendingProduct> products}
+{@java.lang.String error}
+{#include layout/base activeNav="applications"}
+{#title}New application - Loan Origination Portal{/title}
+{#body}
+  <div class="breadcrumbs"><a href="/dashboard">Dashboard</a><span class="sep">/</span><a href="/applications">Applications</a><span class="sep">/</span>New</div>
+  <h1>Start a new loan application</h1>
+  <p class="muted">Step 1 of 2 &mdash; loan request. You'll review required documents and submit on the next screen.</p>
+  {#if error}<div class="alert alert-danger">{error}</div>{/if}
+  <div class="card" style="max-width:640px">
+    <form method="post" action="/applications">
+      <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+      <div class="form-group">
+        <label for="lendingProductId">Lending product</label>
+        <select id="lendingProductId" name="lendingProductId" required>
+          <option value="">Select a product...</option>
+          {#for p in products}
+            <option value="{p.id}">{p.name} ({p.minAmount.money} &ndash; {p.maxAmount.money}, {p.baseRatePct}% base rate)</option>
+          {/for}
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label for="requestedAmount">Requested amount (USD)</label><input type="number" step="0.01" min="1000" id="requestedAmount" name="requestedAmount" required></div>
+        <div class="form-group"><label for="requestedTermMonths">Term (months)</label><input type="number" min="1" id="requestedTermMonths" name="requestedTermMonths" required></div>
+      </div>
+      <div class="form-group"><label for="annualRevenue">Estimated annual revenue (USD, optional)</label><input type="number" step="0.01" id="annualRevenue" name="annualRevenue"></div>
+      <div class="form-group">
+        <label for="riskTier">Self-reported credit profile</label>
+        <select id="riskTier" name="riskTier">
+          <option value="UNSCORED">Prefer not to say</option>
+          <option value="LOW">Strong &mdash; no missed payments</option>
+          <option value="MEDIUM">Average</option>
+          <option value="HIGH">Some past difficulty</option>
+        </select>
+      </div>
+      <div class="form-group"><label for="purpose">Purpose of the loan</label><textarea id="purpose" name="purpose" required></textarea></div>
+      <button type="submit" class="btn btn-primary">Continue</button>
+    </form>
+  </div>
+{/body}
+{/include}

@@ -1,0 +1,56 @@
+{@java.lang.String activeNav}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{#insert title}Loan Origination Portal{/insert}</title>
+  <link rel="stylesheet" href="/static/css/app.css?v={cdi:cacheBust.suffix}">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/">🏦 Loan Origination Portal</a>
+      {#if cdi:currentUser.authenticated}
+        <nav aria-label="Primary">
+          {#if cdi:currentUser.role == 'BORROWER'}
+            <a href="/dashboard" class="{#if activeNav == 'dashboard'}active{/if}">Dashboard</a>
+            <a href="/applications" class="{#if activeNav == 'applications'}active{/if}">Applications</a>
+            <a href="/profile" class="{#if activeNav == 'profile'}active{/if}">Profile</a>
+          {#else if cdi:currentUser.role == 'UNDERWRITER'}
+            <a href="/underwriter/queue" class="{#if activeNav == 'queue'}active{/if}">Queue</a>
+          {#else if cdi:currentUser.role == 'SUPPORT_SPECIALIST'}
+            <a href="/underwriter/queue" class="{#if activeNav == 'queue'}active{/if}">Applications</a>
+          {/if}
+          {#if cdi:currentUser.role == 'ADMIN'}
+            <a href="/admin/products" class="{#if activeNav == 'products'}active{/if}">Products</a>
+            <a href="/admin/doc-types" class="{#if activeNav == 'doctypes'}active{/if}">Doc Types</a>
+            <a href="/admin/users" class="{#if activeNav == 'users'}active{/if}">Users</a>
+            <a href="/admin/import" class="{#if activeNav == 'import'}active{/if}">Import</a>
+            <a href="/admin/audit-log" class="{#if activeNav == 'audit'}active{/if}">Audit Log</a>
+          {/if}
+        </nav>
+      {/if}
+      <div class="spacer"></div>
+      {#if cdi:currentUser.authenticated}
+        <div class="user-menu">
+          <a href="/notifications" aria-label="Notifications">
+            🔔{#if cdi:currentUser.unreadNotificationCount > 0}<span class="notif-badge">{cdi:currentUser.unreadNotificationCount}</span>{/if}
+          </a>
+          <span>{cdi:currentUser.user.fullName} <span class="muted">({cdi:currentUser.role})</span></span>
+          <form method="post" action="/logout">
+            <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+            <button class="btn-logout" type="submit">Log out</button>
+          </form>
+        </div>
+      {/if}
+    </header>
+    <main id="main-content" class="main-container">
+      {#insert body}{/insert}
+    </main>
+    <footer class="app-footer">Loan Origination Portal &mdash; internal demo environment. Not for production lending decisions.</footer>
+  </div>
+  <script src="/static/js/app.js?v={cdi:cacheBust.suffix}"></script>
+</body>
+</html>

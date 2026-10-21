@@ -1,0 +1,41 @@
+{@java.util.List<com.loanportal.model.DocumentTypeTemplate> docTypes}
+{@java.lang.String error}
+{#include layout/base activeNav="doctypes"}
+{#title}Document type templates - Admin{/title}
+{#body}
+  <h1>Document type templates</h1>
+  {#if error}<div class="alert alert-danger">{error}</div>{/if}
+  <div class="grid grid-2">
+    <div class="card">
+      <h2>Templates</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Code</th><th>Name</th><th>Required</th><th>Validity</th><th>Status</th></tr></thead>
+        <tbody>
+        {#for t in docTypes}
+          <tr>
+            <td class="mono">{t.code}</td>
+            <td>{t.name}</td>
+            <td>{#if t.required}Yes{#else}No{/if}</td>
+            <td>{#if t.validityDays}{t.validityDays} days{#else}&mdash;{/if}</td>
+            <td>{#if t.active}<span class="badge badge-success">Active</span>{#else}<span class="badge badge-neutral">Inactive</span>{/if}</td>
+          </tr>
+        {/for}
+        </tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <h2>Add a document type</h2>
+      <form method="post" action="/admin/doc-types">
+        <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+        <div class="form-group"><label for="code">Code</label><input id="code" name="code" placeholder="e.g. bank_statement_3mo" required></div>
+        <div class="form-group"><label for="name">Name</label><input id="name" name="name" required></div>
+        <div class="form-group"><label for="description">Description</label><textarea id="description" name="description" required></textarea></div>
+        <div class="form-group"><label for="validityDays">Validity (days, optional)</label><input type="number" id="validityDays" name="validityDays"></div>
+        <div class="checkbox-row"><input type="checkbox" id="required" name="required" checked><label for="required" style="margin:0;">Required</label></div>
+        <div class="checkbox-row" style="margin-top:.5rem;"><input type="checkbox" id="active" name="active" checked><label for="active" style="margin:0;">Active</label></div>
+        <button class="btn btn-primary" type="submit" style="margin-top:1rem;">Create document type</button>
+      </form>
+    </div>
+  </div>
+{/body}
+{/include}

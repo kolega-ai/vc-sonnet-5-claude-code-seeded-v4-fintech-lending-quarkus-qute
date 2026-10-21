@@ -1,0 +1,139 @@
+{@com.loanportal.model.LoanApplication app}
+{@java.util.List<com.loanportal.model.Document> documents}
+{@java.util.List<com.loanportal.model.Message> messages}
+{@com.loanportal.model.Decision latestDecision}
+{@java.lang.String error}
+{#include layout/base activeNav="applications"}
+{#title}Application #{app.id} - Loan Origination Portal{/title}
+{#body}
+  <div class="breadcrumbs"><a href="/dashboard">Dashboard</a><span class="sep">/</span><a href="/applications">Applications</a><span class="sep">/</span>#{app.id}</div>
+  <div class="section-title">
+    <h1>Application #{app.id} <span class="badge {app.status.badgeClass}">{app.status.label}</span></h1>
+    {#if app.status.name() == 'DRAFT'}
+      <form method="post" action="/applications/{app.id}/submit" data-confirm="Submit this application for review? You won't be able to edit the loan request afterward.">
+        <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+        <button class="btn btn-primary" type="submit">Submit application</button>
+      </form>
+    {/if}
+  </div>
+  {#if error}<div class="alert alert-danger">{error}</div>{/if}
+
+  <div class="tabs">
+    <a href="#overview" class="active">Overview</a>
+    <a href="#documents">Documents</a>
+    <a href="#messages">Messages</a>
+    <a href="#decision">Decision</a>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card" id="overview">
+      <h2>Loan request</h2>
+      <p><strong>Product:</strong> {app.lendingProduct.name}</p>
+      <p><strong>Requested amount:</strong> {app.requestedAmount.money}</p>
+      <p><strong>Term:</strong> {app.requestedTermMonths} months</p>
+      <p><strong>Purpose:</strong> {app.purpose}</p>
+      <p><strong>Created:</strong> {app.createdAt.fmt}</p>
+      {#if app.submittedAt}<p><strong>Submitted:</strong> {app.submittedAt.fmt}</p>{/if}
+      {#if app.status.name() == 'DRAFT' || app.status.name() == 'SUBMITTED'}
+        <form method="post" action="/applications/{app.id}/withdraw" data-confirm="Withdraw this application?">
+          <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+          <button class="btn btn-outline btn-sm" type="submit">Withdraw application</button>
+        </form>
+      {/if}
+    </div>
+    <div class="card">
+      <h2>Business</h2>
+      <p><strong>Business:</strong> {app.borrowerProfile.businessName}</p>
+      <p><strong>Type:</strong> {app.borrowerProfile.businessType}</p>
+      <p><strong>Address:</strong> {app.borrowerProfile.addressLine1}, {app.borrowerProfile.city}, {app.borrowerProfile.state} {app.borrowerProfile.postalCode}</p>
+      <p><strong>Tax ID:</strong> <span class="mono">{app.borrowerProfile.taxId.maskTaxId}</span></p>
+    </div>
+  </div>
+
+  <div class="card" id="documents">
+    <h2>Required documents</h2>
+    {#if documents.isEmpty}
+      <div class="empty-state"><p>No documents are required for this application yet.</p></div>
+    {#else}
+      <div class="table-wrap"><table>
+        <thead><tr><th>Document</th><th>Status</th><th>Note</th><th>Expires</th><th></th></tr></thead>
+        <tbody>
+        {#for d in documents}
+          <tr>
+            <td>{d.documentType.name}{#if d.documentType.required} <span class="muted">(required)</span>{/if}</td>
+            <td><span class="badge {d.status.badgeClass}">{d.status.label}</span></td>
+            <td>{#if d.rejectionReason}<span class="muted">{d.rejectionReason}</span>{/if}</td>
+            <td>{#if d.expiresAt}{d.expiresAt.fmt}{/if}</td>
+            <td>
+              {#if d.status.name() == 'REQUESTED' || d.status.name() == 'REJECTED' || d.status.name() == 'NEEDS_RESUBMISSION' || d.status.name() == 'EXPIRED'}
+                <form method="post" action="/applications/{app.id}/documents/{d.id}/upload" enctype="multipart/form-data" class="stack" style="display:inline-flex; gap:.4rem; align-items:center;">
+                  <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+                  <input type="file" name="file" required style="max-width:180px">
+                  <button class="btn btn-sm btn-accent" type="submit">Upload</button>
+                </form>
+                <div style="display:inline-flex; gap:.4rem; align-items:center; margin-top:.35rem;">
+                  <input class="doc-link" data-doc="{d.id}" placeholder="https://your-bank.example/statement.pdf" style="max-width:220px">
+                  <button class="btn btn-sm btn-outline doc-link-go" data-doc="{d.id}" type="button">Pull from link</button>
+                </div>
+              {#else if d.status.name() == 'ACCEPTED' || d.status.name() == 'UPLOADED'}
+                <a class="btn btn-sm btn-outline" href="/documents/{d.id}/download">Download</a>
+              {/if}
+            </td>
+          </tr>
+        {/for}
+        </tbody>
+      </table></div>
+    {/if}
+  </div>
+
+  <div class="card" id="messages">
+    <h2>Messages</h2>
+    <div class="stack">
+      {#if messages.isEmpty}
+        <p class="muted">No messages yet.</p>
+      {/if}
+      {#for m in messages}
+        <div class="card" style="margin-bottom:.5rem; padding:.75rem 1rem;">
+          <div class="muted" style="font-size:.78rem;">{m.sender.fullName} &middot; {m.createdAt.fmt}</div>
+          <div>{m.body}</div>
+        </div>
+      {/for}
+    </div>
+    <form method="post" action="/applications/{app.id}/messages" style="margin-top:1rem;">
+      <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+      <input type="hidden" name="returnTo" value="/applications/{app.id}#messages">
+      <div class="form-group"><label for="body">Send a message</label><textarea id="body" name="body" required></textarea></div>
+      <button class="btn btn-primary btn-sm" type="submit">Send</button>
+    </form>
+  </div>
+
+  <div class="card" id="decision">
+    <h2>Decision</h2>
+    {#if latestDecision}
+      <p><strong>Outcome:</strong> {latestDecision.decisionType}</p>
+      <p><strong>Reasons:</strong> {latestDecision.reasons}</p>
+      {#if latestDecision.decisionType.name() == 'COUNTEROFFER'}
+        <p><strong>Counteroffer:</strong> {latestDecision.counterofferAmount.money} over {latestDecision.counterofferTermMonths} months at {latestDecision.counterofferRatePct}%</p>
+      {/if}
+      <p class="muted">Decided {latestDecision.decidedAt.fmt}</p>
+    {#else}
+      <p class="muted">No decision has been recorded yet.</p>
+    {/if}
+  </div>
+  {|
+  <script>
+    document.querySelectorAll('.doc-link-go').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var docId = btn.getAttribute('data-doc');
+        var field = document.querySelector('.doc-link[data-doc="' + docId + '"]');
+        fetch(window.location.pathname + '/documents/' + docId + '/from-link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ csrf: document.querySelector('input[name=csrf]').value, sourceUrl: field.value })
+        }).then(function (r) { return r.json(); }).then(function () { window.location.reload(); });
+      });
+    });
+  </script>
+  |}
+{/body}
+{/include}

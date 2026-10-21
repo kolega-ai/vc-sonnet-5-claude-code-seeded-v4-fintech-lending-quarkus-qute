@@ -1,0 +1,106 @@
+{@com.loanportal.model.BorrowerProfile profile}
+{@java.util.List<com.loanportal.model.BusinessOwner> owners}
+{@java.util.List<com.loanportal.model.PaymentAccount> paymentAccounts}
+{@java.lang.String message}
+{#include layout/base activeNav="profile"}
+{#title}Profile - Loan Origination Portal{/title}
+{#body}
+  <div class="breadcrumbs"><a href="/dashboard">Dashboard</a><span class="sep">/</span>Profile</div>
+  <h1>Business profile</h1>
+  {#if message}<div class="alert alert-success">{message}</div>{/if}
+  <div class="grid grid-2">
+    <div class="card">
+      <h2>Business details</h2>
+      <form method="post" action="/profile">
+        <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+        <div class="form-group"><label for="businessName">Business name</label><input id="businessName" name="businessName" value="{profile.businessName}" required></div>
+        <div class="form-group"><label for="businessType">Business type</label><input id="businessType" name="businessType" value="{profile.businessType}" required></div>
+        <div class="form-group"><label for="addressLine1">Address line 1</label><input id="addressLine1" name="addressLine1" value="{profile.addressLine1}" required></div>
+        <div class="form-group"><label for="addressLine2">Address line 2</label><input id="addressLine2" name="addressLine2" value="{profile.addressLine2 ?: ''}"></div>
+        <div class="form-row">
+          <div class="form-group"><label for="city">City</label><input id="city" name="city" value="{profile.city}" required></div>
+          <div class="form-group"><label for="state">State</label><input id="state" name="state" maxlength="2" value="{profile.state}" required></div>
+          <div class="form-group"><label for="postalCode">Postal code</label><input id="postalCode" name="postalCode" value="{profile.postalCode}" required></div>
+        </div>
+        <div class="form-group"><label for="contactPhone">Contact phone</label><input id="contactPhone" name="contactPhone" value="{profile.contactPhone}" required></div>
+        <p class="hint">Tax ID and email are managed by support &mdash; contact us to change these.</p>
+        <button class="btn btn-primary" type="submit">Save changes</button>
+      </form>
+      <details style="margin-top:1rem;">
+        <summary class="btn btn-sm btn-outline" style="display:inline-flex;">Change sign-in phrase</summary>
+        <form method="post" action="/profile/credentials" style="margin-top:.75rem;">
+          <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+          <div class="form-group"><label for="newPhrase">New sign-in phrase</label><input id="newPhrase" name="newPhrase" type="password" minlength="10" required></div>
+          <button class="btn btn-primary btn-sm" type="submit">Update</button>
+        </form>
+      </details>
+    </div>
+    <div class="card">
+      <h2>Business owners</h2>
+      {#if owners.isEmpty}
+        <p class="muted">No owners on file yet.</p>
+      {#else}
+        <div class="table-wrap"><table>
+          <thead><tr><th>Name</th><th>Title</th><th>Ownership</th><th>SSN</th></tr></thead>
+          <tbody>
+          {#for o in owners}
+            <tr><td>{o.fullName}</td><td>{o.title}</td><td>{o.ownershipPct}%</td><td class="mono">***-**-{o.ssnLast4}</td></tr>
+          {/for}
+          </tbody>
+        </table></div>
+      {/if}
+      <details style="margin-top:1rem;">
+        <summary class="btn btn-sm btn-outline" style="display:inline-flex;">Add an owner</summary>
+        <form method="post" action="/profile/owners" style="margin-top:.75rem;">
+          <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+          <div class="form-group"><label for="ownerFullName">Full name</label><input id="ownerFullName" name="fullName" required></div>
+          <div class="form-row">
+            <div class="form-group"><label for="ownerTitle">Title</label><input id="ownerTitle" name="title" required></div>
+            <div class="form-group"><label for="ownershipPct">Ownership %</label><input type="number" step="0.01" id="ownershipPct" name="ownershipPct" required></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label for="ssnLast4">SSN (last 4 only)</label><input id="ssnLast4" name="ssnLast4" maxlength="4" pattern="\d{4}" required></div>
+            <div class="form-group"><label for="dateOfBirth">Date of birth</label><input type="date" id="dateOfBirth" name="dateOfBirth"></div>
+          </div>
+          <button class="btn btn-primary btn-sm" type="submit">Add owner</button>
+        </form>
+      </details>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Payment accounts</h2>
+    {#if paymentAccounts.isEmpty}
+      <p class="muted">No payment accounts on file yet.</p>
+    {#else}
+      <div class="table-wrap"><table>
+        <thead><tr><th>Bank</th><th>Type</th><th>Account</th><th>Routing</th></tr></thead>
+        <tbody>
+        {#for a in paymentAccounts}
+          <tr><td>{a.bankName}</td><td>{a.accountType}</td><td class="mono">****{a.accountLast4}</td><td class="mono">****{a.routingLast4}</td></tr>
+        {/for}
+        </tbody>
+      </table></div>
+    {/if}
+    <details style="margin-top:1rem;">
+      <summary class="btn btn-sm btn-outline" style="display:inline-flex;">Add a payment account</summary>
+      <form method="post" action="/profile/payment-accounts" style="margin-top:.75rem;">
+        <input type="hidden" name="csrf" value="{cdi:csrf.currentToken}">
+        <input type="hidden" name="profileId" value="{profile.id}">
+        <div class="form-row">
+          <div class="form-group"><label for="bankName">Bank name</label><input id="bankName" name="bankName" required></div>
+          <div class="form-group"><label for="accountType">Account type</label>
+            <select id="accountType" name="accountType"><option value="CHECKING">Checking</option><option value="SAVINGS">Savings</option></select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label for="accountLast4">Account number (last 4 only)</label><input id="accountLast4" name="accountLast4" maxlength="4" pattern="\d{4}" required></div>
+          <div class="form-group"><label for="routingLast4">Routing number (last 4 only)</label><input id="routingLast4" name="routingLast4" maxlength="4" pattern="\d{4}" required></div>
+        </div>
+        <p class="hint">For security, only the last 4 digits of any account or routing number are ever stored.</p>
+        <button class="btn btn-primary btn-sm" type="submit">Add account</button>
+      </form>
+    </details>
+  </div>
+{/body}
+{/include}
